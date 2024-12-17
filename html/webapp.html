@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maze Runner Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #6387c4;
+    }
+    
+    h1{
+      color:aliceblue;
+    }
+
+    #game-container {
+      position: relative;
+      width: 600px;
+      height: 400px;
+      border: 2px solid #000;
+      margin: 20px auto;
+      background-color: #ddd;
+    }
+
+    #player, #chaser {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+    }
+
+    #player {
+      background-color: blue;
+    }
+
+    #chaser {
+      background-color: red;
+    }
+
+    #end-zone {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width: 50px;
+      height: 50px;
+      background-color: green;
+      z-index: 2;
+    }
+
+    .wall {
+      position: absolute;
+      background-color: black;
+    }
+
+    #message {
+      font-size: 1.5em;
+      margin-top: 20px;
+      color:aliceblue;
+    }
+
+    #restart {
+      display: none;
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
+      text-align: center;
+      margin: auto;
+    }
+
+    #score-board {
+      font-size: 24px;
+      color: #fff;
+      padding: 10px;
+      margin: 20px auto;
+    }
+
+    #score {
+      font-weight: bold;
+      color: aliceblue;
+    }
+
+    #linkbacktomain {
+        font-family:Arial, Helvetica, sans-serif;
+        color:aliceblue;
+    }
+    
+    a {
+      text-decoration: none;
+      color:aliceblue;
+      font-size:large;
+    }
+
+    a:hover {
+      font-weight:bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Maze Runner Game</h1>
+  <a class="linkbacktomain" href="./guitarinfo.html">Back</a>
+
+  <!-- Score Display -->
+  <div id="score-board">
+    Score: <span id="score">0</span>
+  </div>
+
+  <div id="game-container">
+    <div id="player"></div>
+    <div id="chaser"></div>
+    <div id="end-zone"></div>
+  </div>
+
+  <div id="message"></div>
+  <button id="restart" onclick="startGame()">Play Again</button>
+
+  <script>
+    const gameContainer = document.getElementById("game-container");
+    const player = document.getElementById("player");
+    const chaser = document.getElementById("chaser");
+    const endZone = document.getElementById("end-zone");
+    const message = document.getElementById("message");
+    const restartButton = document.getElementById("restart");
+
+    const gridSize = 40; // size of each grid cell
+    const bufferZone = 10; // Smaller buffer zone between player and walls
+    let grid = [];
+    let walls = [];
+    let playerPos = { x: 0, y: 0 };
+    let chaserPos = { x: 0, y: 0 };
+    let playerSpeed = gridSize;
+    let chaserSpeed = gridSize / 2; // Slower chaser
+    let chaserInterval;
+    let score = 0; // Initialize score
+
+    // Function to update the score
+    function updateScore() {
+      document.getElementById("score").textContent = score;
+    }
+
+    function generateMaze() {
+      walls.forEach(wall => wall.remove());
+      walls = [];
+      const rows = gameContainer.clientHeight / gridSize;
+      const cols = gameContainer.clientWidth / gridSize;
+
+      grid = Array.from({ length: rows }, () => Array(cols).fill(1));
+
+      function carvePath(x, y) {
+        const directions = [
+          { dx: 0, dy: -1 }, // Up
+          { dx: 1, dy: 0 },  // Right
+          { dx: 0, dy: 1 },  // Down
+          { dx: -1, dy: 0 }  // Left
+        ];
+
+        directions.sort(() => Math.random() - 0.5);
+        grid[y][x] = 0;
+
+        directions.forEach(({ dx, dy }) => {
+          const nx = x + 2 * dx;
+          const ny = y + 2 * dy;
+          if (nx >= 0 && ny >= 0 && nx < cols && ny < rows && grid[ny][nx] === 1) {
+            grid[y + dy][x + dx] = 0;
+            carvePath(nx, ny);
+          }
+        });
+      }
+
+      carvePath(0, 0);
+
+      for (let i = 0; i < rows * cols * 0.1; i++) {
+        const rx = Math.floor(Math.random() * cols);
+        const ry = Math.floor(Math.random() * rows);
+        grid[ry][rx] = 0;
+      }
+
+      grid.forEach((row, y) => {
+        row.forEach((cell, x) => {
+          if (cell === 1) {
+            const wall = document.createElement("div");
+            wall.className = "wall";
+            wall.style.left = `${x * gridSize}px`;
+            wall.style.top = `${y * gridSize}px`;
+            wall.style.width = `${gridSize}px`;
+            wall.style.height = `${gridSize}px`;
+            gameContainer.appendChild(wall);
+            walls.push(wall);
+          }
+        });
+      });
+    }
+
+    function spawnPlayerAndChaser() {
+      playerPos = { x: 0, y: 0 };
+      do {
+        chaserPos = {
+          x: Math.floor(Math.random() * grid[0].length),
+          y: Math.floor(Math.random() * grid.length)
+        };
+      } while (grid[chaserPos.y][chaserPos.x] === 1 || (chaserPos.x === 0 && chaserPos.y === 0));
+
+      updatePositions();
+    }
+
+    function movePlayer(event) {
+      let { x, y } = playerPos;
+
+      switch (event.key) {
+        case "ArrowUp": y = Math.max(0, y - 1); break;
+        case "ArrowDown": y = Math.min(grid.length - 1, y + 1); break;
+        case "ArrowLeft": x = Math.max(0, x - 1); break;
+        case "ArrowRight": x = Math.min(grid[0].length - 1, x + 1); break;
+      }
+
+      if (grid[y][x] === 0) {
+        playerPos = { x, y };
+        updatePositions();
+      }
+    }
+
+    function findPath(start, goal) {
+      const directions = [
+        { dx: 0, dy: -1 },
+        { dx: 1, dy: 0 },
+        { dx: 0, dy: 1 },
+        { dx: -1, dy: 0 }
+      ];
+
+      let queue = [start];
+      let visited = Array.from({ length: grid.length }, () => Array(grid[0].length).fill(false));
+      let parent = Array.from({ length: grid.length }, () => Array(grid[0].length).fill(null));
+      visited[start.y][start.x] = true;
+
+      while (queue.length > 0) {
+        let current = queue.shift();
+        if (current.x === goal.x && current.y === goal.y) {
+          let path = [];
+          let node = goal;
+          while (node) {
+            path.unshift(node);
+            node = parent[node.y][node.x];
+          }
+          return path;
+        }
+
+        directions.forEach(({ dx, dy }) => {
+          const nx = current.x + dx;
+          const ny = current.y + dy;
+          if (nx >= 0 && ny >= 0 && nx < grid[0].length && ny < grid.length && grid[ny][nx] === 0 && !visited[ny][nx]) {
+            visited[ny][nx] = true;
+            parent[ny][nx] = current;
+            queue.push({ x: nx, y: ny });
+          }
+        });
+      }
+      return [];
+    }
+
+    function moveChaser() {
+      const path = findPath(chaserPos, playerPos);
+      if (path.length > 1) {
+        chaserPos = path[1];
+      }
+      updatePositions();
+      checkCollision();
+    }
+
+    function updatePositions() {
+      player.style.left = `${playerPos.x * gridSize + bufferZone}px`;
+      player.style.top = `${playerPos.y * gridSize + bufferZone}px`;
+      chaser.style.left = `${chaserPos.x * gridSize + bufferZone}px`;
+      chaser.style.top = `${chaserPos.y * gridSize + bufferZone}px`;
+    }
+
+    function checkCollision() {
+      if (playerPos.x === chaserPos.x && playerPos.y === chaserPos.y) {
+        endGame("You Lose! The chaser caught you.");
+      }
+
+      const endZoneRect = endZone.getBoundingClientRect();
+      const playerRect = player.getBoundingClientRect();
+      if (
+        playerRect.left < endZoneRect.right &&
+        playerRect.right > endZoneRect.left &&
+        playerRect.top < endZoneRect.bottom &&
+        playerRect.bottom > endZoneRect.top
+      ) {
+        endGame("You Win! You reached the goal.");
+      }
+    }
+
+    function endGame(messageText) {
+      message.textContent = messageText;
+      if (messageText.includes("Win")) {
+        score += 1;
+      } else if (messageText.includes("Lose")) {
+        score = 0;
+      }
+      localStorage.setItem('score',score);
+      updateScore(); // Update score display
+      restartButton.style.display = "block";
+      document.removeEventListener("keydown", movePlayer);
+      clearInterval(chaserInterval);
+    }
+
+    function startGame() {
+      message.textContent = "";
+      restartButton.style.display = "none";
+      if (localStorage.getItem('score') === null){
+        localStorage.setItem('score',0)
+      } // Reset the score when starting a new game
+      score = parseInt(localStorage.getItem('score'));
+      updateScore(); // Update score display
+      generateMaze();
+      spawnPlayerAndChaser();
+      document.addEventListener("keydown", movePlayer);
+      chaserInterval = setInterval(moveChaser, 500);
+    }
+
+    startGame();
+  </script>
+</body>
+</html>

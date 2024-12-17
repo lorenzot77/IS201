@@ -1,0 +1,85 @@
+a{
+    font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-size:large;
+    text-decoration: none;
+}
+
+.link:hover{
+    font-weight:bold;
+}
+
+h1{
+    padding:10px;
+    border:10px solid black;
+    background-color: gray;
+    font-family:'Times New Roman', Times, serif;
+    color:aliceblue;
+}
+
+h3{
+    margin-left:25%;
+    margin-right:25%;
+}
+
+body{
+    text-align:center;
+    background-color: cadetblue;
+}
+
+ul{
+    display:inline-block;
+}
+
+ol{display:inline-block;}
+
+div{
+    margin-left:auto;
+    margin-right:auto;
+}
+
+.red_hot{
+    font-weight:400px;
+    color:red;
+}
+
+.bold_letters{
+    font-weight:bold;
+    color:blue;
+}
+
+ol{
+    color:gray;
+    font-weight:600;
+}
+
+ul{
+    color:gray;
+}
+
+.song-list{
+    padding:20px;
+    border:10px solid white;
+    background-color: antiquewhite;
+    display:inline-block;
+}
+
+.embedded-tableau{
+    margin-left: auto;
+    margin-right:auto;
+    padding:15px;
+    border:5px solid black;
+    background-color: lightblue;
+    display:inline-block;
+}
+
+.embedded-items iframe{
+    padding:15px;
+    border:5px solid black;
+    background-color: lightblue;
+}
+
+.imgBorder{
+    padding:5px;
+    border:10px solid darkgray;
+    background-color: lightblue;
+}
